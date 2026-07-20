@@ -1,0 +1,16 @@
+# 密钥与本地配置（绝不入库）
+backend/config/config.yaml
+
+# 数据与产物
+backend/data/
+backend/withme-server
+backend/withme-server.exe
+frontend/dist/
+frontend/node_modules/
+
+# 系统/编辑器
+.idea/
+.deepcode/
+*.log
+.DS_Store
+Thumbs.db

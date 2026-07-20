@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.deepcode
+backend/config/config.yaml
+backend/data
+backend/withme-server
+backend/withme-server.exe
+frontend/node_modules
+frontend/dist
+*.log
+README.md
+docker-compose.yml

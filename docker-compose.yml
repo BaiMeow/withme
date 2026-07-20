@@ -1,0 +1,17 @@
+services:
+  withme:
+    image: ghcr.io/baimeow/withme:latest
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # 线上用 mysql 时取消注释：
+      # DATABASE_DRIVER: mysql
+      # DATABASE_DSN: user:password@tcp(mysql:3306)/withme?charset=utf8mb4&parseTime=true
+    volumes:
+      - withme-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  withme-data:

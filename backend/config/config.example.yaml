@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+# 数据库：driver 填 sqlite（本地/容器默认）或 mysql（线上）
+database:
+  driver: sqlite
+  dsn: "./data/withme.db"
+  # mysql 示例：
+  # driver: mysql
+  # dsn: "user:password@tcp(127.0.0.1:3306)/withme?charset=utf8mb4&parseTime=true"
+
+# 前端构建产物目录（由后端托管）
+frontend:
+  dist: "../frontend/dist"
+
+# Gemini API 配置（内置 Google Search grounding，无需额外搜索引擎）
+# 真实密钥请写入本地 config.yaml（已 gitignore）或用环境变量 GEMINI_API_KEY 注入
+gemini:
+  api_key: ""
+  model: "gemini-3.5-flash"
