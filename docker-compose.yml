@@ -4,12 +4,9 @@ services:
     build: .
     ports:
       - "8080:8080"
-    environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      # 线上用 mysql 时取消注释：
-      # DATABASE_DRIVER: mysql
-      # DATABASE_DSN: user:password@tcp(mysql:3306)/withme?charset=utf8mb4&parseTime=true
     volumes:
+      # 生产配置（含 gemini.api_key、mysql dsn 等），参考 backend/config/config.example.yaml
+      - ./config.yaml:/app/config/config.yaml:ro
       - withme-data:/app/data
     restart: unless-stopped
 

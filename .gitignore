@@ -1,12 +1,16 @@
 # 密钥与本地配置（绝不入库）
 backend/config/config.yaml
+config.yaml
 
 # 数据与产物
 backend/data/
 backend/withme-server
 backend/withme-server.exe
-frontend/dist/
 frontend/node_modules/
+
+# 前端构建产物（go:embed 目录，CI 中重新生成）
+backend/internal/web/dist/*
+!backend/internal/web/dist/.gitkeep
 
 # 系统/编辑器
 .idea/
@@ -14,3 +18,6 @@ frontend/node_modules/
 *.log
 .DS_Store
 Thumbs.db
+backend/withme-server.exe~
+backend/NUL
+frontend/NUL

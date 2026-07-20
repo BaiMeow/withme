@@ -31,44 +31,45 @@ cd backend && go run ./cmd/server
 cd frontend && pnpm dev
 ```
 
+前端产物通过 `go:embed` 打进后端二进制：`pnpm build` 的输出目录就是
+`backend/internal/web/dist`，先构建前端再构建后端即为单文件分发。
+
 ## 线上部署
 
 ### 手动部署
 
 ```bash
-cd frontend && pnpm build          # 产物输出到 frontend/dist
+cd frontend && pnpm build          # 产物直接输出到 Go 的 embed 目录
 cd backend && go build -o withme-server ./cmd/server
-./withme-server                    # 后端直接托管 dist，单进程服务全部流量
+./withme-server                    # 单二进制托管全部流量
 ```
 
 ### Docker / GHCR
 
 推送到 main 分支后，GitHub Actions 自动构建并推送镜像到
-`ghcr.io/baimeow/withme`（tags：`latest` / `sha-xxx` / `v*` 语义化版本）。
+`ghcr.io/baimeow/withme`（linux/amd64；tags：`latest` / `sha-xxx` / `v*` 语义化版本）。
+
+镜像内不含密钥，将生产配置挂载进容器：
 
 ```bash
 docker run -d -p 8080:8080 \
-  -e GEMINI_API_KEY=你的密钥 \
+  -v ./config.yaml:/app/config/config.yaml:ro \
   -v withme-data:/app/data \
   ghcr.io/baimeow/withme:latest
 ```
 
-或使用 compose：`GEMINI_API_KEY=... docker compose up -d`
+或在仓库根目录准备好 `config.yaml` 后 `docker compose up -d`。
 
 ### 配置与密钥
 
 密钥**不入库**：`backend/config/config.yaml` 已 gitignore，仓库内仅有
-`config.example.yaml`。所有配置均可用环境变量覆盖：
+`config.example.yaml`，复制后填入真实配置：
 
-| 环境变量 | 说明 |
-|---|---|
-| `GEMINI_API_KEY` | Gemini 密钥（必需） |
-| `GEMINI_MODEL` | 模型 |
-| `DATABASE_DRIVER` | `sqlite`（默认）/ `mysql` |
-| `DATABASE_DSN` | 数据库连接串 |
-| `SERVER_PORT` | 端口，默认 8080 |
-| `FRONTEND_DIST` | 前端产物目录 |
-| `CONFIG_PATH` | 配置文件路径，默认 ./config/config.yaml |
+```yaml
+gemini:
+  api_key: "你的密钥"
+  model: "gemini-3.5-flash"
+```
 
 线上使用 MySQL：
 
