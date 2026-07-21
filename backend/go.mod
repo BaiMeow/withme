@@ -5,6 +5,8 @@ go 1.26
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.10.0
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.132
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tms v1.3.132
 	google.golang.org/genai v1.64.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.54.0

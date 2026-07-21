@@ -13,6 +13,7 @@ import (
 	"withme/internal/api"
 	"withme/internal/config"
 	"withme/internal/generator"
+	"withme/internal/moderation"
 	"withme/internal/store"
 	"withme/internal/web"
 )
@@ -33,10 +34,20 @@ func main() {
 	}
 	log.Printf("[gemini] model=%s ready\n", cfg.Gemini.Model)
 
+	mod, err := moderation.New(cfg.Tencent.SecretID, cfg.Tencent.SecretKey, cfg.Tencent.Region, cfg.Tencent.BizType)
+	if err != nil {
+		log.Fatalf("failed to init tencent tms: %v", err)
+	}
+	if mod.Enabled() {
+		log.Printf("[moderation] tencent tms ready (region=%s biz_type=%s)\n", cfg.Tencent.Region, cfg.Tencent.BizType)
+	} else {
+		log.Println("[moderation] tencent.secret_id/secret_key 未配置，内容审核已关闭")
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
-	handler := api.NewHandler(gen, st)
+	handler := api.NewHandler(gen, st, mod)
 	r.POST("/api/generate", handler.GenerateProfile)
 	r.GET("/api/profiles", handler.ListProfiles)
 	r.GET("/api/profiles/:id", handler.GetProfile)

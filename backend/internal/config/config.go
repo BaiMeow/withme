@@ -10,6 +10,7 @@ type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
 	Gemini   GeminiConfig   `yaml:"gemini"`
+	Tencent  TencentConfig  `yaml:"tencent"`
 }
 
 type ServerConfig struct {
@@ -25,6 +26,14 @@ type DatabaseConfig struct {
 type GeminiConfig struct {
 	APIKey string `yaml:"api_key"`
 	Model  string `yaml:"model"`
+}
+
+// TencentConfig 腾讯云内容安全（TMS）；secret_id/secret_key 为空则关闭审核
+type TencentConfig struct {
+	SecretID  string `yaml:"secret_id"`
+	SecretKey string `yaml:"secret_key"`
+	Region    string `yaml:"region"`
+	BizType   string `yaml:"biz_type"`
 }
 
 func Load(path string) (*Config, error) {
@@ -47,6 +56,12 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Gemini.Model == "" {
 		cfg.Gemini.Model = "gemini-2.5-flash"
+	}
+	if cfg.Tencent.Region == "" {
+		cfg.Tencent.Region = "ap-guangzhou"
+	}
+	if cfg.Tencent.BizType == "" {
+		cfg.Tencent.BizType = "default"
 	}
 	return cfg, nil
 }

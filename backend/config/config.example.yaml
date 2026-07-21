@@ -14,3 +14,11 @@ database:
 gemini:
   api_key: ""
   model: "gemini-3.5-flash"
+
+# 腾讯云内容安全（TMS）文本审核，密钥见 https://console.cloud.tencent.com/cam/capi
+# secret_id / secret_key 留空则关闭审核；biz_type 可在 TMS 控制台自定义策略
+tencent:
+  secret_id: ""
+  secret_key: ""
+  region: "ap-guangzhou"
+  biz_type: "default"
