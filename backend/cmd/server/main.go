@@ -14,6 +14,7 @@ import (
 
 	"withme/internal/api"
 	"withme/internal/config"
+	"withme/internal/crawler/steam"
 	"withme/internal/generator"
 	"withme/internal/moderation"
 	"withme/internal/store"
@@ -31,7 +32,8 @@ func main() {
 	defer st.Close()
 	slog.Info("database ready", "driver", cfg.Database.Driver)
 
-	gen, err := generator.New(context.Background(), cfg.Gemini.APIKey, cfg.Gemini.Model)
+	steamSearch, steamProfile := steam.NewTools()
+	gen, err := generator.New(context.Background(), cfg.Gemini.APIKey, cfg.Gemini.Model, steamSearch, steamProfile)
 	if err != nil {
 		log.Fatalf("failed to init gemini: %v", err)
 	}
