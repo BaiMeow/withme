@@ -15,8 +15,7 @@ type Clue struct {
 type DatingProfile struct {
 	Nickname  string    `json:"nickname"`
 	BasicInfo BasicInfo `json:"basic_info"`
-	Insider   string    `json:"insider"`   // 圈内人版：markdown 文本
-	Outsider  string    `json:"outsider"`  // 圈外人版：markdown 文本
+	Content   string    `json:"content"` // 正文：markdown 文本
 	Sources   []string  `json:"sources"`
 }
 
@@ -31,7 +30,7 @@ type BasicInfo struct {
 // GenerateRequest API 请求
 type GenerateRequest struct {
 	Username string `json:"username" binding:"required"`
-	Version  string `json:"version"` // 生成预设：insider（圈内人版）/ outsider（圈外人版），默认 outsider
+	Version  string `json:"version"` // 生成预设：cyber（赛博版）/ normal（相亲角版），默认 normal
 }
 
 // GenerateResponse API 响应

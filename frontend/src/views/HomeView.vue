@@ -7,7 +7,7 @@ import ProfileCard from '../components/ProfileCard.vue'
 const router = useRouter()
 
 const username = ref('')
-const version = ref('outsider')
+const version = ref('normal')
 const loading = ref(false)
 const loadingMsg = ref('')
 const error = ref('')
@@ -16,8 +16,8 @@ const toast = ref('')
 const history = ref(null) // null=加载中, []=空
 
 const presets = [
-  { key: 'insider', en: 'INSIDER BRIEF', cn: '圈内密报', desc: '写给同行看：行话黑话拉满，发技术社区、校友群，懂的人秒懂。' },
-  { key: 'outsider', en: 'MATCHMAKING POST', cn: '相亲角快报', desc: '写给长辈和介绍人看：通俗接地气，突出生活魅力，发相亲群。' },
+  { key: 'cyber', en: 'INSIDER BRIEF', cn: '圈内密报', desc: '写给同行看：行话黑话拉满，发技术社区、校友群，懂的人秒懂。' },
+  { key: 'normal', en: 'MATCHMAKING POST', cn: '相亲角快报', desc: '写给长辈和介绍人看：通俗接地气，突出生活魅力，发相亲群。' },
 ]
 
 // ---- Hero 打字机 ----
@@ -83,7 +83,7 @@ async function loadHistory() {
   }
 }
 
-const PRESET_TAG = { insider: '圈内密报', outsider: '相亲角快报', both: '双版存档' }
+const PRESET_TAG = { cyber: '圈内密报', normal: '相亲角快报' }
 function presetTag(v) { return PRESET_TAG[v] || v || '—' }
 
 function fmtDate(s) {

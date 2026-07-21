@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 
 const props = defineProps({
   profile: { type: Object, required: true }, // DatingProfile
-  version: { type: String, default: 'outsider' }, // 生成预设：insider / outsider
+  version: { type: String, default: 'normal' }, // 生成预设：cyber / normal
   shareId: { type: String, default: '' },
   views: { type: Number, default: null },
   createdAt: { type: String, default: '' },
@@ -14,22 +14,16 @@ const props = defineProps({
 const emit = defineEmits(['toast'])
 
 const PRESETS = {
-  insider: { cn: '圈内密报', en: 'INSIDER BRIEF' },
-  outsider: { cn: '相亲角快报', en: 'MATCHMAKING POST' },
+  cyber: { cn: '圈内密报', en: 'INSIDER BRIEF' },
+  normal: { cn: '相亲角快报', en: 'MATCHMAKING POST' },
 }
 
-// 只展示本次预设生成的版本；兼容早期同时含两版的存档（按实际内容推断预设）
-const effectiveVersion = computed(() => {
-  if (PRESETS[props.version]) return props.version
-  return props.profile.insider ? 'insider' : 'outsider'
-})
+// version 非法时回退 normal
+const effectiveVersion = computed(() => (PRESETS[props.version] ? props.version : 'normal'))
 
 const preset = computed(() => PRESETS[effectiveVersion.value])
 
-const content = computed(() => {
-  const p = props.profile
-  return p[effectiveVersion.value] || p.insider || p.outsider || ''
-})
+const content = computed(() => props.profile.content || '')
 
 const contentHtml = computed(() =>
   content.value ? DOMPurify.sanitize(marked.parse(content.value)) : '',

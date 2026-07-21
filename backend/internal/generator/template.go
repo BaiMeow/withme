@@ -2,47 +2,42 @@ package generator
 
 import "fmt"
 
-// pickPrompt 根据版本选择 prompt，username 作为搜索关键词
-// 圈内人版 / 圈外人版是两个独立预设，每次只生成一个版本
+// pickPrompt 通用信息 + 版本特殊要求拼装；version 为 cyber / normal
+// 两个预设共享同一段检索与输出要求，每次只生成一个版本
 func pickPrompt(version, username string) string {
-	if version == "insider" {
-		return fmt.Sprintf(promptInsider, username)
+	specific := promptNormal
+	if version == "cyber" {
+		specific = promptCyber
 	}
-	return fmt.Sprintf(promptOutsider, username)
+	return fmt.Sprintf(promptCommon, username, username, specific)
 }
 
-const promptInsider = `请使用 Google 搜索网名为 "%s" 的人在互联网上的公开信息（GitHub、博客、技术社区、社交媒体等），全面了解其职业领域、技术方向、兴趣圈子和语言风格，然后生成一份相亲资料。
+const promptCommon = `目标：为网名为 "%s" 的人生成一份相亲资料。
 
-只生成极客版——适合发在同行圈子、技术社区、校友群。用该领域的行话和圈子文化来写，让同行看了会心一笑。
+第一步·定位到人：
+先用 "%s" 做初步检索（Google 搜索、Steam 用户搜索等可用工具），交叉比对各平台信息（头像、地区、简介、互相关联的账号等）定位到具体的人，并尽可能收集 TA 的各种别名——曾用名、其他平台账号名、昵称变体。若搜索结果明显指向多个不同的人，以信息最丰富、最活跃的那个为准。
 
-严格按以下 JSON 输出（不要带其他文字）：
+第二步·详细检索：
+用上一步确认到的所有别名，分别在各自活跃的平台上做详细检索，全面了解 TA 的性格特点、兴趣爱好、生活方式与网络形象。
 
-{
-  "nickname": "网名",
-  "basic_info": {
-    "gender": "推测性别",
-    "age_range": "推测年龄段",
-    "location": "所在地",
-    "occupation": "职业领域"
-  },
-  "insider": "极客版完整内容（markdown格式）",
-  "sources": ["信息源URL"]
-}`
+%s
 
-const promptOutsider = `请使用 Google 搜索网名为 "%s" 的人在互联网上的公开信息（GitHub、博客、技术社区、社交媒体等），全面了解其职业领域、兴趣圈子和生活方式，然后生成一份相亲资料。
-
-只生成接地气版——适合发相亲角、相亲群、给长辈看。完全用通俗语言，去掉所有行业术语，突出生活化魅力。
-
-严格按以下 JSON 输出（不要带任何其他文字）：
+严格按以下 JSON 输出（不要带任何其他文字，不要用代码块包裹）：
 
 {
   "nickname": "网名",
   "basic_info": {
-    "gender": "推测性别",
-    "age_range": "推测年龄段",
+    "gender": "性别",
+    "age_range": "年龄段",
     "location": "所在地",
     "occupation": "职业领域"
   },
-  "outsider": "接地气版完整内容（markdown格式）",
+  "content": "正文（markdown格式）",
   "sources": ["信息源URL"]
 }`
+
+const promptCyber = `写作要求（赛博版）：
+写给网友和同好看——适合发在 TA 所在的社区、群聊。用网络流行语和 TA 实际所在圈子的语言来写：TA 混游戏圈就用游戏梗，混动漫圈就用动漫梗，按检索到的真实圈子灵活调整，不要预设 TA 是程序员，互联网上不只有程序员。像朋友安利一样，还原 TA 在网上真实的样子，让同好看了会心一笑。`
+
+const promptNormal = `写作要求（相亲角版）：
+写给长辈和介绍人看——适合发相亲角、相亲群。完全用通俗语言，要接地气。末尾必须附一段「红娘点评」，以红娘的口吻总结此人的亮点，并给出一句真诚的推荐语。`

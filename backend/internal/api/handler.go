@@ -37,12 +37,12 @@ func (h *Handler) GenerateProfile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, model.GenerateResponse{Error: "username 不能为空"})
 		return
 	}
-	// 圈内人版 / 圈外人版是两个独立预设，一次只生成一个版本
+	// 赛博版 / 相亲角版是两个独立预设，一次只生成一个版本
 	if req.Version == "" {
-		req.Version = "outsider"
+		req.Version = "normal"
 	}
-	if req.Version != "insider" && req.Version != "outsider" {
-		c.JSON(http.StatusBadRequest, model.GenerateResponse{Error: "version 只能是 insider（圈内人版）或 outsider（圈外人版）"})
+	if req.Version != "cyber" && req.Version != "normal" {
+		c.JSON(http.StatusBadRequest, model.GenerateResponse{Error: "version 只能是 cyber（赛博版）或 normal（相亲角版）"})
 		return
 	}
 
@@ -82,7 +82,7 @@ func profileText(username string, p *model.DatingProfile) string {
 	var sb strings.Builder
 	sb.WriteString(username + "\n" + p.Nickname + "\n")
 	sb.WriteString(p.BasicInfo.Gender + " " + p.BasicInfo.AgeRange + " " + p.BasicInfo.Location + " " + p.BasicInfo.Occupation + "\n")
-	sb.WriteString(p.Insider + "\n" + p.Outsider)
+	sb.WriteString(p.Content)
 	return sb.String()
 }
 
