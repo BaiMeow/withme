@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"withme/internal/crawler/steam"
 
 	"withme/internal/agent"
 	"withme/internal/model"
@@ -17,15 +18,16 @@ type Generator struct {
 }
 
 // New 创建资料生成器；tools 为额外接入的本地工具，模型可在生成过程中调用
-func New(ctx context.Context, apiKey, model string, tools ...agent.Tool) (*Generator, error) {
+func New(ctx context.Context, apiKey, model string) (*Generator, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey})
 	if err != nil {
 		return nil, fmt.Errorf("create gemini client: %w", err)
 	}
+	steamSearch, steamProfile := steam.NewTools()
+
 	a := agent.New(client, model,
 		agent.WithGoogleSearch(),
-		agent.WithTools(tools...),
-		agent.WithConfig(&genai.GenerateContentConfig{Temperature: genai.Ptr[float32](0.8)}),
+		agent.WithTools(steamSearch, steamProfile),
 	)
 	return &Generator{agent: a}, nil
 }

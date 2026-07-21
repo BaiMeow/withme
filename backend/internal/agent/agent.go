@@ -41,24 +41,10 @@ func WithTools(tools ...Tool) Option {
 func WithGoogleSearch() Option {
 	return func(a *Agent) {
 		a.config.Tools = append(a.config.Tools, &genai.Tool{GoogleSearch: &genai.GoogleSearch{}})
-	}
-}
-
-// WithConfig 覆盖生成配置（温度等）；工具声明在 Run 时组装，此处无需设置 Tools
-func WithConfig(cfg *genai.GenerateContentConfig) Option {
-	return func(a *Agent) {
-		if cfg != nil {
-			a.config = cfg
+		if a.config.ToolConfig == nil {
+			a.config.ToolConfig = &genai.ToolConfig{}
 		}
-	}
-}
-
-// WithMaxTurns 限制工具调用轮次，防止模型陷入调用循环，默认 8
-func WithMaxTurns(n int) Option {
-	return func(a *Agent) {
-		if n > 0 {
-			a.maxTurns = n
-		}
+		a.config.ToolConfig.IncludeServerSideToolInvocations = genai.Ptr(true)
 	}
 }
 
@@ -68,7 +54,7 @@ func New(client *genai.Client, model string, opts ...Option) *Agent {
 		model:    model,
 		config:   &genai.GenerateContentConfig{},
 		tools:    map[string]Tool{},
-		maxTurns: 8,
+		maxTurns: 16,
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -86,20 +72,19 @@ func (a *Agent) Run(ctx context.Context, prompt string) (string, error) {
 		}
 		cfg.Tools = append(cfg.Tools, &genai.Tool{FunctionDeclarations: decls})
 	}
-	// debug 级别才请求思考摘要，避免平时为 thinking token 额外付费
 	debug := slog.Default().Enabled(ctx, slog.LevelDebug)
 	if debug {
 		cfg.ThinkingConfig = &genai.ThinkingConfig{IncludeThoughts: true}
 	}
 
-	chat, err := a.client.Chats.Create(ctx, a.model, &cfg, nil)
-	if err != nil {
-		return "", fmt.Errorf("create chat: %w", err)
+	// 手动维护对话历史；Chat 内部 curatedHistory 过滤会丢掉 function call turn，
+	// 导致发 function response 时 API 400。
+	contents := []*genai.Content{
+		{Role: "user", Parts: []*genai.Part{{Text: prompt}}},
 	}
 
-	parts := []*genai.Part{{Text: prompt}}
 	for turn := 0; turn < a.maxTurns; turn++ {
-		resp, err := chat.Send(ctx, parts...)
+		resp, err := a.client.Models.GenerateContent(ctx, a.model, contents, &cfg)
 		if err != nil {
 			return "", fmt.Errorf("gemini call failed: %w", err)
 		}
@@ -107,9 +92,12 @@ func (a *Agent) Run(ctx context.Context, prompt string) (string, error) {
 			return "", fmt.Errorf("gemini returned empty response")
 		}
 
+		modelContent := resp.Candidates[0].Content
+		contents = append(contents, modelContent)
+
 		var calls []*genai.FunctionCall
 		var text string
-		for _, part := range resp.Candidates[0].Content.Parts {
+		for _, part := range modelContent.Parts {
 			switch {
 			case part.Thought:
 				if debug {
@@ -129,12 +117,11 @@ func (a *Agent) Run(ctx context.Context, prompt string) (string, error) {
 			return text, nil
 		}
 
-		// 必须换新切片：chat 历史持有 parts 的引用，原地复用会篡改首条 user 消息
 		responses := make([]*genai.Part, 0, len(calls))
 		for _, call := range calls {
 			responses = append(responses, a.execute(ctx, call))
 		}
-		parts = responses
+		contents = append(contents, &genai.Content{Role: "user", Parts: responses})
 	}
 	return "", fmt.Errorf("agent exceeded max turns (%d), last task unfinished", a.maxTurns)
 }
@@ -145,15 +132,33 @@ func (a *Agent) execute(ctx context.Context, call *genai.FunctionCall) *genai.Pa
 	tool, ok := a.tools[call.Name]
 	if !ok {
 		slog.WarnContext(ctx, "gemini called unknown tool", "tool", call.Name)
-		return genai.NewPartFromFunctionResponse(call.Name, map[string]any{"error": "unknown tool: " + call.Name})
+		return &genai.Part{
+			FunctionResponse: &genai.FunctionResponse{
+				ID:       call.ID,
+				Name:     call.Name,
+				Response: map[string]any{"error": "unknown tool: " + call.Name},
+			},
+		}
 	}
 
 	slog.DebugContext(ctx, "tool call", "tool", call.Name, "args", call.Args)
 	result, err := tool.Call(ctx, call.Args)
 	if err != nil {
 		slog.WarnContext(ctx, "tool call failed", "tool", call.Name, "error", err)
-		return genai.NewPartFromFunctionResponse(call.Name, map[string]any{"error": err.Error()})
+		return &genai.Part{
+			FunctionResponse: &genai.FunctionResponse{
+				ID:       call.ID,
+				Name:     call.Name,
+				Response: map[string]any{"error": err.Error()},
+			},
+		}
 	}
 	slog.DebugContext(ctx, "tool result", "tool", call.Name, "result", result)
-	return genai.NewPartFromFunctionResponse(call.Name, map[string]any{"output": result})
+	return &genai.Part{
+		FunctionResponse: &genai.FunctionResponse{
+			ID:       call.ID,
+			Name:     call.Name,
+			Response: map[string]any{"output": result},
+		},
+	}
 }

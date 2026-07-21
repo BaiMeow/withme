@@ -46,7 +46,9 @@ func (h *Handler) GenerateProfile(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 60*time.Second)
+	// AI 生成耗时较长（多轮模型调用 + Steam 爬取 + Google Search），
+	// 使用 Background 避免客户端断开时连带取消 API 调用
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	profile, err := h.generator.Generate(ctx, req.Username, req.Version)
