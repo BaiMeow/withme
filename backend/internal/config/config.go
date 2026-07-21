@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
+	Log      LogConfig      `yaml:"log"`
 	Database DatabaseConfig `yaml:"database"`
 	Gemini   GeminiConfig   `yaml:"gemini"`
 	Tencent  TencentConfig  `yaml:"tencent"`
@@ -15,6 +16,11 @@ type Config struct {
 
 type ServerConfig struct {
 	Port string `yaml:"port"`
+}
+
+// LogConfig level: debug / info / warn / error，debug 会打印 gemini 思考过程
+type LogConfig struct {
+	Level string `yaml:"level"`
 }
 
 // DatabaseConfig driver: sqlite（本地）/ mysql（线上）
@@ -47,6 +53,9 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Server.Port == "" {
 		cfg.Server.Port = "8080"
+	}
+	if cfg.Log.Level == "" {
+		cfg.Log.Level = "info"
 	}
 	if cfg.Database.Driver == "" {
 		cfg.Database.Driver = "sqlite"

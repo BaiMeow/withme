@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"withme/internal/model"
@@ -32,6 +33,12 @@ func (g *Generator) Generate(ctx context.Context, username, version string) (*mo
 		},
 	}
 
+	// debug 级别才请求思考摘要，避免平时为 thinking token 额外付费
+	debug := slog.Default().Enabled(ctx, slog.LevelDebug)
+	if debug {
+		cfg.ThinkingConfig = &genai.ThinkingConfig{IncludeThoughts: true}
+	}
+
 	resp, err := g.client.Models.GenerateContent(ctx, g.model, genai.Text(pickPrompt(version, username)), cfg)
 	if err != nil {
 		return nil, fmt.Errorf("gemini call failed: %w", err)
@@ -41,7 +48,21 @@ func (g *Generator) Generate(ctx context.Context, username, version string) (*mo
 		return nil, fmt.Errorf("gemini returned empty response")
 	}
 
-	content := resp.Candidates[0].Content.Parts[0].Text
+	var content string
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if part.Thought {
+			if debug {
+				slog.DebugContext(ctx, "gemini thought", "username", username, "version", version, "thought", part.Text)
+			}
+			continue
+		}
+		if content == "" && part.Text != "" {
+			content = part.Text
+		}
+	}
+	if content == "" {
+		return nil, fmt.Errorf("gemini returned empty response")
+	}
 	content = extractJSON(content)
 
 	var profile model.DatingProfile

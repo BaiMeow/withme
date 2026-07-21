@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -60,9 +60,9 @@ func (h *Handler) GenerateProfile(c *gin.Context) {
 	if h.moderator.Enabled() {
 		reason, err := h.moderator.Check(ctx, profileText(req.Username, profile))
 		if err != nil {
-			log.Printf("[moderation] check failed, fail-open: %v", err)
+			slog.Warn("moderation check failed, fail-open", "error", err)
 		} else if reason != "" {
-			log.Printf("[moderation] blocked username=%s: %s", req.Username, reason)
+			slog.Info("moderation blocked", "username", req.Username, "reason", reason)
 			c.JSON(http.StatusOK, model.GenerateResponse{Error: "生成内容未通过安全审核，请换个用户名重试"})
 			return
 		}

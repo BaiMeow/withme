@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -20,28 +22,29 @@ import (
 
 func main() {
 	cfg := loadConfig()
+	initLogger(cfg.Log.Level)
 
 	st, err := store.Open(cfg.Database.Driver, cfg.Database.DSN)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
 	defer st.Close()
-	log.Printf("[database] driver=%s ready\n", cfg.Database.Driver)
+	slog.Info("database ready", "driver", cfg.Database.Driver)
 
 	gen, err := generator.New(context.Background(), cfg.Gemini.APIKey, cfg.Gemini.Model)
 	if err != nil {
 		log.Fatalf("failed to init gemini: %v", err)
 	}
-	log.Printf("[gemini] model=%s ready\n", cfg.Gemini.Model)
+	slog.Info("gemini ready", "model", cfg.Gemini.Model)
 
 	mod, err := moderation.New(cfg.Tencent.SecretID, cfg.Tencent.SecretKey, cfg.Tencent.Region, cfg.Tencent.BizType)
 	if err != nil {
 		log.Fatalf("failed to init tencent tms: %v", err)
 	}
 	if mod.Enabled() {
-		log.Printf("[moderation] tencent tms ready (region=%s biz_type=%s)\n", cfg.Tencent.Region, cfg.Tencent.BizType)
+		slog.Info("tencent tms ready", "region", cfg.Tencent.Region, "biz_type", cfg.Tencent.BizType)
 	} else {
-		log.Println("[moderation] tencent.secret_id/secret_key 未配置，内容审核已关闭")
+		slog.Warn("tencent.secret_id/secret_key 未配置，内容审核已关闭")
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -59,7 +62,7 @@ func main() {
 	}
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
-		log.Println("[frontend] 未找到内嵌的前端产物，请先执行 cd frontend && pnpm build（仅 API 可用）")
+		slog.Warn("未找到内嵌的前端产物，请先执行 cd frontend && pnpm build（仅 API 可用）")
 	} else {
 		assets, _ := fs.Sub(dist, "assets")
 		r.StaticFS("/assets", http.FS(assets))
@@ -70,14 +73,23 @@ func main() {
 			}
 			c.Data(http.StatusOK, "text/html; charset=utf-8", index)
 		})
-		log.Println("[frontend] embedded dist ready")
+		slog.Info("embedded frontend ready")
 	}
 
 	addr := fmt.Sprintf(":%s", cfg.Server.Port)
-	log.Printf("[server] listening on %s\n", addr)
+	slog.Info("listening", "addr", addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// initLogger 按配置初始化全局 slog；级别非法时回退 info
+func initLogger(level string) {
+	var lvl slog.Level
+	if err := lvl.UnmarshalText([]byte(level)); err != nil {
+		lvl = slog.LevelInfo
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: lvl})))
 }
 
 func loadConfig() *config.Config {
