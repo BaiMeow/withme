@@ -86,6 +86,8 @@ func (s *Store) migrate(ctx context.Context) error {
 			profile JSON NOT NULL,
 			views BIGINT NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL,
+			moderation_reason TEXT NOT NULL,
+			visible TINYINT NOT NULL DEFAULT 1,
 			INDEX idx_created_at (created_at)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
 	} else {
@@ -95,7 +97,9 @@ func (s *Store) migrate(ctx context.Context) error {
 			version TEXT NOT NULL,
 			profile TEXT NOT NULL,
 			views INTEGER NOT NULL DEFAULT 0,
-			created_at DATETIME NOT NULL
+			created_at DATETIME NOT NULL,
+			moderation_reason TEXT NOT NULL DEFAULT '',
+			visible INTEGER NOT NULL DEFAULT 1
 		);
 		CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at)`
 	}
@@ -111,8 +115,8 @@ func (s *Store) migrate(ctx context.Context) error {
 	return nil
 }
 
-// Save 保存一份资料并返回分享 ID。
-func (s *Store) Save(ctx context.Context, username, version string, p *model.DatingProfile) (string, error) {
+// Save 保存一份资料并返回分享 ID。moderationReason 为空表示审核通过，visible 控制是否在列表中展示。
+func (s *Store) Save(ctx context.Context, username, version string, p *model.DatingProfile, moderationReason string, visible bool) (string, error) {
 	raw, err := json.Marshal(p)
 	if err != nil {
 		return "", fmt.Errorf("marshal profile: %w", err)
@@ -122,8 +126,8 @@ func (s *Store) Save(ctx context.Context, username, version string, p *model.Dat
 		return "", err
 	}
 	_, err = s.db.ExecContext(ctx,
-		`INSERT INTO profiles (id, username, version, profile, views, created_at) VALUES (?, ?, ?, ?, 0, ?)`,
-		id, username, version, string(raw), time.Now())
+		`INSERT INTO profiles (id, username, version, profile, views, created_at, moderation_reason, visible) VALUES (?, ?, ?, ?, 0, ?, ?, ?)`,
+		id, username, version, string(raw), time.Now(), moderationReason, visible)
 	if err != nil {
 		return "", fmt.Errorf("insert profile: %w", err)
 	}
@@ -147,8 +151,8 @@ func (s *Store) get(ctx context.Context, id string) (*model.StoredProfile, error
 	var sp model.StoredProfile
 	var raw string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, version, profile, views, created_at FROM profiles WHERE id = ?`, id).
-		Scan(&sp.ID, &sp.Username, &sp.Version, &raw, &sp.Views, &sp.CreatedAt)
+		`SELECT id, username, version, profile, views, created_at, moderation_reason, visible FROM profiles WHERE id = ?`, id).
+		Scan(&sp.ID, &sp.Username, &sp.Version, &raw, &sp.Views, &sp.CreatedAt, &sp.ModerationReason, &sp.Visible)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -169,7 +173,7 @@ func (s *Store) ListRecent(ctx context.Context, limit int) ([]model.ProfileSumma
 		limit = 20
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, username, version, profile, views, created_at FROM profiles ORDER BY created_at DESC LIMIT ?`, limit)
+		`SELECT id, username, version, profile, views, created_at FROM profiles WHERE visible = 1 ORDER BY created_at DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list profiles: %w", err)
 	}

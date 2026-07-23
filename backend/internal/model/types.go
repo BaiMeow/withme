@@ -43,12 +43,14 @@ type GenerateResponse struct {
 
 // StoredProfile 数据库中保存的一份资料
 type StoredProfile struct {
-	ID        string         `json:"id"`
-	Username  string         `json:"username"`
-	Version   string         `json:"version"`
-	Profile   *DatingProfile `json:"profile"`
-	Views     int64          `json:"views"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID               string         `json:"id"`
+	Username         string         `json:"username"`
+	Version          string         `json:"version"`
+	Profile          *DatingProfile `json:"profile"`
+	Views            int64          `json:"views"`
+	CreatedAt        time.Time      `json:"created_at"`
+	ModerationReason string         `json:"-"` // 后审失败原因，不入API响应
+	Visible          bool           `json:"-"` // 是否公开展示
 }
 
 // ProfileSummary 历史列表用的摘要（不含正文）

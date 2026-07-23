@@ -58,19 +58,22 @@ func (h *Handler) GenerateProfile(c *gin.Context) {
 	}
 
 	// 生成内容对外可见，入库前过一遍内容安全审核；
-	// 审核服务异常时放行（fail-open），避免腾讯云故障拖垮生成链路
+	// 审核服务异常时放行（fail-open），避免腾讯云故障拖垮生成链路；
+	// 审核不通过的内容仍然入库但标记为不可见（visible=false）。
+	var modReason string
+	visible := true
 	if h.moderator.Enabled() {
 		reason, err := h.moderator.Check(ctx, profileText(req.Username, profile))
 		if err != nil {
 			slog.Warn("moderation check failed, fail-open", "error", err)
 		} else if reason != "" {
-			slog.Info("moderation blocked", "username", req.Username, "reason", reason)
-			c.JSON(http.StatusOK, model.GenerateResponse{Error: "生成内容未通过安全审核，请换个用户名重试"})
-			return
+			slog.Info("moderation blocked, saving as invisible", "username", req.Username, "reason", reason)
+			modReason = reason
+			visible = false
 		}
 	}
 
-	id, err := h.store.Save(ctx, req.Username, req.Version, profile)
+	id, err := h.store.Save(ctx, req.Username, req.Version, profile, modReason, visible)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, model.GenerateResponse{Error: "保存失败: " + err.Error()})
 		return
