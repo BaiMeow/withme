@@ -12,6 +12,12 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Gemini   GeminiConfig   `yaml:"gemini"`
 	Tencent  TencentConfig  `yaml:"tencent"`
+	X        XConfig        `yaml:"x"`
+}
+
+// XConfig X (Twitter) API v2 配置；bearer_token 从 developer.x.com 获取，留空则关闭 X 工具
+type XConfig struct {
+	BearerToken string `yaml:"bearer_token"`
 }
 
 type ServerConfig struct {

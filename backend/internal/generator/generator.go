@@ -8,6 +8,7 @@ import (
 	"withme/internal/crawler/steam"
 
 	"withme/internal/agent"
+	"withme/internal/crawler/x"
 	"withme/internal/model"
 
 	"google.golang.org/genai"
@@ -17,17 +18,23 @@ type Generator struct {
 	agent *agent.Agent
 }
 
-// New 创建资料生成器；tools 为额外接入的本地工具，模型可在生成过程中调用
-func New(ctx context.Context, apiKey, model string) (*Generator, error) {
+// New 创建资料生成器；xBearerToken 非空时启用 x_search_user / x_userpost 工具
+func New(ctx context.Context, apiKey, model, xBearerToken string) (*Generator, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey})
 	if err != nil {
 		return nil, fmt.Errorf("create gemini client: %w", err)
 	}
 	steamSearch, steamProfile := steam.NewTools()
 
+	tools := []agent.Tool{steamSearch, steamProfile}
+	if xBearerToken != "" {
+		xSearch, xPost := x.NewTools(xBearerToken)
+		tools = append(tools, xSearch, xPost)
+	}
+
 	a := agent.New(client, model,
 		agent.WithGoogleSearch(),
-		agent.WithTools(steamSearch, steamProfile),
+		agent.WithTools(tools...),
 	)
 	return &Generator{agent: a}, nil
 }

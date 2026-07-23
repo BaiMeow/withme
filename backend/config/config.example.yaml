@@ -15,6 +15,11 @@ gemini:
   api_key: ""
   model: "gemini-3.5-flash"
 
+# X (Twitter) API v2，Bearer Token 从 https://developer.x.com 获取
+# bearer_token 留空则不启用 X 工具（x_search_user / x_userpost）
+x:
+  bearer_token: "AAAAAAAAAAAAAAAAAAAAAKQL%2BwEAAAAAwqaIwsgLuWouiFODA%2F4X5ayg1dY%3DRKI7HU9ZbR4OvexFFN7EGoMCYrDKZ3DYSlEjQD4PXM8Y7cJunf"
+
 # 腾讯云内容安全（TMS）文本审核，密钥见 https://console.cloud.tencent.com/cam/capi
 # secret_id / secret_key 留空则关闭审核；biz_type 可在 TMS 控制台自定义策略
 tencent:

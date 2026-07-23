@@ -31,7 +31,7 @@ func main() {
 	defer st.Close()
 	slog.Info("database ready", "driver", cfg.Database.Driver)
 
-	gen, err := generator.New(context.Background(), cfg.Gemini.APIKey, cfg.Gemini.Model)
+	gen, err := generator.New(context.Background(), cfg.Gemini.APIKey, cfg.Gemini.Model, cfg.X.BearerToken)
 	if err != nil {
 		log.Fatalf("failed to init gemini: %v", err)
 	}
